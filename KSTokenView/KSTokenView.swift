@@ -737,6 +737,7 @@ open class KSTokenView: UIView {
         _showingSearchResult = true
         if let parentSearchResult = parentViewForSearchResult {
             parentSearchResult.addSubview(_searchTableView)
+            _searchTableView.frame = parentSearchResult
         } else {
             addSubview(_searchTableView)
         }
