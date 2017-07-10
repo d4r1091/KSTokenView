@@ -69,10 +69,10 @@ import UIKit
    @objc optional func tokenViewDidBeginEditing(_ tokenView: KSTokenView)
    @objc optional func tokenViewDidEndEditing(_ tokenView: KSTokenView)
    
-   func tokenView(_ tokenView: KSTokenView, performSearchWithString string: String, completion: ((_ results: Array<AnyObject>) -> Void)?)
-   func tokenView(_ tokenView: KSTokenView, displayTitleForObject object: AnyObject) -> String
-   @objc optional func tokenView(_ tokenView: KSTokenView, withObject object: AnyObject, tableView: UITableView, cellForRowAtIndexPath indexPath: IndexPath) -> UITableViewCell
-   @objc optional func tokenView(_ tokenView: KSTokenView, didSelectRowAtIndexPath indexPath: IndexPath)
+   func tokenView(_ token: KSTokenView, performSearchWithString string: String, completion: ((_ results: Array<AnyObject>) -> Void)?)
+   func tokenView(_ token: KSTokenView, displayTitleForObject object: AnyObject) -> String
+   @objc optional func tokenView(_ token: KSTokenView, withObject object: AnyObject, tableView: UITableView, cellForRowAtIndexPath indexPath: IndexPath) -> UITableViewCell
+   @objc optional func tokenView(_ token: KSTokenView, didSelectRowAtIndexPath indexPath: IndexPath)
    
    @objc optional func tokenViewShouldDeleteAllToken(_ tokenView: KSTokenView) -> Bool
    @objc optional func tokenViewWillDeleteAllToken(_ tokenView: KSTokenView)
@@ -100,11 +100,9 @@ open class KSTokenView: UIView {
    fileprivate var _resultArray = [AnyObject]()
    fileprivate var _showingSearchResult = false
    fileprivate var _indicator = UIActivityIndicatorView(activityIndicatorStyle: UIActivityIndicatorViewStyle.gray)
-   fileprivate var _searchResultHeight: CGFloat = 200.0
+   fileprivate let _searchResultHeight: CGFloat = 200.0
    fileprivate var _lastSearchString: String = ""
    fileprivate var _intrinsicContentHeight: CGFloat = UIViewNoIntrinsicMetric
-   fileprivate var _cellBackgroundColor: UIColor?
-   fileprivate var _cellTextLabelColor: UIColor?
    
    //MARK: - Public Properties
    //__________________________________________________________________________________
@@ -140,9 +138,6 @@ open class KSTokenView: UIView {
    
    /// default is nil
    weak open var delegate: KSTokenViewDelegate?
-    
-    /// default is nil. Used to add searchresult to another view
-    open var parentViewForSearchResult: UIView?
    
    /// default is .Vertical.
    open var direction: KSTokenViewScrollDirection = .vertical {
@@ -161,10 +156,9 @@ open class KSTokenView: UIView {
    }
    
    /// Default is (TokenViewWidth, 200)
-   open var searchResultHeight: CGFloat = 200 {
+   open var searchResultSize: CGSize = CGSize.zero {
       didSet {
-        _searchResultHeight = searchResultHeight
-        _searchTableView.frame.size.height = searchResultHeight
+         _searchTableView.frame.size = searchResultSize
       }
    }
    
@@ -174,20 +168,6 @@ open class KSTokenView: UIView {
          _searchTableView.backgroundColor = searchResultBackgroundColor
       }
    }
-    
-    /// Default is whiteColor()
-    open var searchResultCellBackgroundColor: UIColor = UIColor.white {
-        didSet {
-            _cellBackgroundColor = searchResultCellBackgroundColor
-        }
-    }
-    
-    /// Default is blackColor()
-    open var searchResultCellTextLabelColor: UIColor = UIColor.black {
-        didSet {
-            _cellTextLabelColor = searchResultCellTextLabelColor
-        }
-    }
    
    /// default is UIColor.blueColor()
    open var activityIndicatorColor: UIColor = UIColor.blue {
@@ -419,8 +399,9 @@ open class KSTokenView: UIView {
       _indicator.hidesWhenStopped = true
       _indicator.stopAnimating()
       _indicator.color = activityIndicatorColor
-    
-      _searchTableView.frame = CGRect(x: 0, y: frame.height, width: frame.width, height: _searchResultHeight)
+      
+      searchResultSize = CGSize(width: frame.width, height: _searchResultHeight)
+      _searchTableView.frame = CGRect(x: 0, y: frame.height, width: searchResultSize.width, height: searchResultSize.height)
       _searchTableView.delegate = self
       _searchTableView.dataSource = self
       
@@ -434,7 +415,7 @@ open class KSTokenView: UIView {
    //
    override open func layoutSubviews() {
       _tokenField.updateLayout(false)
-      _searchTableView.frame.size = CGSize(width: frame.width, height: _searchResultHeight)
+      _searchTableView.frame.size = CGSize(width: frame.width, height: searchResultSize.height)
    }
    
     override open var intrinsicContentSize : CGSize {
@@ -744,12 +725,7 @@ open class KSTokenView: UIView {
     fileprivate func _showSearchResults() {
         guard !_showingSearchResult else {return}
         _showingSearchResult = true
-        if let parentSearchResult = parentViewForSearchResult {
-            parentSearchResult.addSubview(_searchTableView)
-            _searchTableView.frame = parentSearchResult
-        } else {
-            addSubview(_searchTableView)
-        }
+        addSubview(_searchTableView)
         let tokenFieldHeight = _tokenField.frame.height
         _searchTableView.isHidden = false
         _changeHeight(tokenFieldHeight)
@@ -982,12 +958,6 @@ extension KSTokenView : UITableViewDataSource {
       let title = delegate?.tokenView(self, displayTitleForObject: _resultArray[(indexPath as NSIndexPath).row])
       cell!.textLabel!.text = (title != nil) ? title : "No Title"
       cell!.selectionStyle = UITableViewCellSelectionStyle.none
-    if (_cellBackgroundColor != nil) {
-        cell!.backgroundColor = _cellBackgroundColor
-    }
-    if (_cellTextLabelColor != nil) {
-        cell!.textLabel?.textColor = _cellTextLabelColor
-    }
-    return cell!
+      return cell!
    }
 }
